@@ -1,0 +1,55 @@
+name: "Reusable Slack Notification Workflow"
+
+on:
+  workflow_call:
+    inputs:
+      message:
+        required: true
+        type: string
+      color:
+        required: false
+        type: string
+        default: "#36a64f"  # default green
+      channel:
+        required: false
+        type: string
+        default: "C09R47WGPMW" # default channel ID
+
+jobs:
+  send_slack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send colorful Slack Notification
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "Error: SLACK_WEBHOOK_URL is empty"
+            exit 1
+          fi
+
+          # Prepare JSON payload with rich formatting
+          payload=$(jq -n \
+            --arg channel "${{ inputs.channel }}" \
+            --arg text "${{ inputs.message }}" \
+            --arg color "${{ inputs.color }}" \
+            '{
+              channel: $channel,
+              attachments: [
+                {
+                  color: $color,
+                  blocks: [
+                    {
+                      type: "section",
+                      text: {
+                        type: "mrkdwn",
+                        text: $text
+                      }
+                    }
+                  ]
+                }
+              ]
+            }')
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data "$payload" "$SLACK_WEBHOOK_URL"
