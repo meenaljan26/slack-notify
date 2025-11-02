@@ -1,4 +1,4 @@
-name: "Reusable Slack Notification Workflow"
+name: Reusable Slack Notification
 
 on:
   workflow_call:
@@ -9,47 +9,35 @@ on:
       color:
         required: false
         type: string
-        default: "#36a64f"  # default green
+        default: "#36a64f"
       channel:
         required: false
         type: string
-        default: "C09R47WGPMW" # default channel ID
+        default: "C09R47WGPMW"
 
 jobs:
   send_slack:
     runs-on: ubuntu-latest
     steps:
-      - name: Send colorful Slack Notification
+      - name: Send Slack Notification
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          if [ -z "$SLACK_WEBHOOK_URL" ]; then
-            echo "Error: SLACK_WEBHOOK_URL is empty"
-            exit 1
-          fi
-
-          # Prepare JSON payload with rich formatting
-          payload=$(jq -n \
-            --arg channel "${{ inputs.channel }}" \
-            --arg text "${{ inputs.message }}" \
-            --arg color "${{ inputs.color }}" \
-            '{
-              channel: $channel,
-              attachments: [
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{
+              "channel": "${{ inputs.channel }}",
+              "attachments": [
                 {
-                  color: $color,
-                  blocks: [
+                  "color": "${{ inputs.color }}",
+                  "blocks": [
                     {
-                      type: "section",
-                      text: {
-                        type: "mrkdwn",
-                        text: $text
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "${{ inputs.message }}"
                       }
                     }
                   ]
                 }
               ]
-            }')
-
-          curl -X POST -H 'Content-type: application/json' \
-            --data "$payload" "$SLACK_WEBHOOK_URL"
+            }' "$SLACK_WEBHOOK_URL"
